@@ -1,49 +1,86 @@
 use num_bigint::BigUint;
 
 pub fn best_hash(message: &str) -> String {
-    let len_bits: u64 = (message.len() * 8) as u64;
-    // Calculate the number of padding bytes needed
-    let mut padding_len = 64 - ((len_bits + 8) % 64);
-    if padding_len < 8 {
-        padding_len += 64;
-    }
-    // Create the padding vector with the length of the input string and zeros for the remaining padding
-    let mut padding = Vec::with_capacity(padding_len as usize + 8);
-    padding.extend_from_slice(message.as_bytes());
-    padding.push(0x80); // Append the '1' bit
+    // byte conversion
+    let msg_bytes: Vec<u8> = message.chars().map(|x| x as u8).collect();
 
-    // Append zeros for the remaining padding
-    padding.extend(std::iter::repeat(0x80).take(padding_len as usize - 7));
+    // padding
+    let original_length = msg_bytes.len();
+    let mut padded_message = msg_bytes.clone();
+    padded_message.push(0b10000000);
 
-    // Append the length of the input string in bits as a 64-bit unsigned integer in big-endian order
-    padding.extend_from_slice(&len_bits.to_be_bytes());
-
-    let msg = padding;
-    let mut binary_start: Vec<u32> = vec![];
-    for byte in msg {
-        binary_start.push(format!("{:08b}", byte).trim().parse().unwrap());
+    while padded_message.len() % 64 != (64 - 8) % 64 {
+        padded_message.push(padded_message[padded_message.len() % original_length] % 7);
     }
 
-    let mut hash_value: u64 = 5381; 
+    let length_bits = (original_length as u64 * 8).to_be_bytes();
+    padded_message.extend_from_slice(&length_bits);
 
-    for byte in binary_start {
-        hash_value = (hash_value << 2).wrapping_add(hash_value).wrapping_add(u64::from(byte));
+    let bin_chunks: Vec<&[u8]> = padded_message.chunks(4).collect();
 
-    }
+    let hash_values: [u32; 8] = [
+        0xEBEDD428, 0x58598FED, 0x345DE15D, 0x1427889B, 0x44ECF241, 0x24683D1B, 0x3BBA9ED7,
+        0x1C829AA6,
+    ];
 
-    let mut res = format!("{:x}", hash_value);
-    if res.len() % 16 != 0 {
-        while res.len() % 16 != 0 {
-            res = format!("{res}0");
+    let mut word_chunks: Vec<Vec<u8>> = vec![];
+    for chunk in bin_chunks {
+        let mut curr_word: Vec<u8> = chunk.to_vec();
+        let mut count = 0;
+        while curr_word.len() % 64 != 0 {
+            curr_word.push(curr_word[count]);
+            count += 1;
         }
+        word_chunks.push(curr_word);
     }
-    res
-}
+    let mut result: Vec<u8> = vec![];
+    for (index, item) in word_chunks.iter().enumerate() {
+        let v3: Vec<u8> = item
+            .iter()
+            .zip(word_chunks.iter().next().iter())
+            .map(|(&x1, &x2)| x1 ^ x2[index + 1])
+            .collect();
+        result.append(
+            &mut v3
+                .into_iter()
+                .map(|x: u8| {
+                    let mut xwares: u64 = x as u64;
+                        for mut i in hash_values {
+                            xwares = (xwares | (xwares << 8)) & 0x00FF00FF;
+                            xwares = (xwares | (xwares << 4)) & 0x0F0F0F0F;
+                            xwares = (xwares | (xwares << 2)) & 0x33333333;
+                            xwares = (xwares | (xwares << 1)) & 0x55555555;
+    
+                            i = (i | (i << 8)) & 0x00FF00FF;
+                            i = (i | (i << 4)) & 0x0F0F0F0F;
+                            i = (i | (i << 2)) & 0x33333333;
+                            i = (i | (i << 1)) & 0x55555555;
+                            
+                            if xwares % 2 == 0 {
+                                xwares = xwares.reverse_bits();
+                            }
+                            let z = !(xwares | ((i as u64) << 1)) ^ x as u64;
+                            xwares = z;
+                            
+                        }
+                    return xwares as u8;
+                })
+                .collect(),
+        );
+    }
 
+    //println!("{:#0x?}", result);
+    let char_result: Vec<String> = result
+        .iter()
+        .map(|x| format!("{:x}", *x))
+        .collect::<Vec<String>>();
+    let string_result: String = char_result.join("");
+    string_result
+}
 
 //AI
 pub fn custom_hash(message: &str) -> String {
-// Convert message to bytes
+    // Convert message to bytes
     let msg_bytes: Vec<u8> = message.chars().map(|c| c as u8).collect();
 
     // Padding
@@ -60,22 +97,28 @@ pub fn custom_hash(message: &str) -> String {
     padded_message.extend_from_slice(&length_bytes);
 
     // XOR adjacent bytes
-    let xor_result: Vec<u8> = padded_message.windows(2).step_by(2)
+    let xor_result: Vec<u8> = padded_message
+        .windows(2)
+        .step_by(2)
         .map(|pair| pair[0] ^ pair[1])
         .collect();
 
     // Sum adjacent bytes
-    let sum_result: Vec<u8> = xor_result.windows(2)
+    let sum_result: Vec<u8> = xor_result
+        .windows(2)
         .map(|pair| pair[0].wrapping_add(pair[1]))
         .collect();
 
     // Half and XOR
-    let half_xor_result: Vec<u8> = sum_result.windows(2)
+    let half_xor_result: Vec<u8> = sum_result
+        .windows(2)
         .map(|pair| pair[0] & !pair[1])
         .collect();
 
     // XOR adjacent bytes
-    let xor_result2: Vec<u8> = half_xor_result.windows(2).step_by(2)
+    let xor_result2: Vec<u8> = half_xor_result
+        .windows(2)
+        .step_by(2)
         .map(|pair| pair[0] ^ pair[1])
         .collect();
 
@@ -237,7 +280,7 @@ pub fn hash3(message: &str) -> String {
             .map(|x| format!("{:x}", x as u8))
             .collect::<String>()
             .as_bytes(),
-        16,
+        10,
     )
     .unwrap();
     let mut result6: Vec<char> = format!("{:x}", result6_i).chars().collect();
@@ -289,7 +332,7 @@ pub fn increment_string(s: &str) -> String {
 mod tests1 {
     use super::*;
 
-        /* 
+    /*
         #[test]
     fn it_works() {
         let handle3 = std::thread::spawn(move || {
@@ -443,7 +486,7 @@ mod tests2 {
         println!("Hashed {} inputs in {:?}", num_inputs, elapsed_time);
     }
 
-       #[test]
+    #[test]
     fn it_works() {
         let handle3 = std::thread::spawn(move || {
             let start = String::from("a");
@@ -459,6 +502,26 @@ mod tests2 {
                 previous.push(z);
                 current = increment_string(&current);
             }
+        });
+
+        handle3.join().unwrap();
+    }
+
+    #[test]
+    fn qbc() {
+        let handle3 = std::thread::spawn(move || {
+            let x = hash3("The quick brown fox jumps over the lazy dog");
+
+            
+
+            println!("{x}");
+            let y = hash3("The quick brown fox jumps over the lazy dog.");
+            println!("{y}");
+            let z = hash3("The quick brown fox jumps over the lazy bog");
+            println!("{z}");
+            assert_ne!(x, y);
+            assert_ne!(x, z);
+             
         });
 
         handle3.join().unwrap();
@@ -532,7 +595,7 @@ mod tests3 {
         println!("Hashed {} inputs in {:?}", num_inputs, elapsed_time);
     }
 
-       #[test]
+    #[test]
     fn it_works() {
         let handle3 = std::thread::spawn(move || {
             let start = String::from("a");
@@ -621,26 +684,23 @@ mod tests4 {
         println!("Hashed {} inputs in {:?}", num_inputs, elapsed_time);
     }
 
-       #[test]
+    #[test]
     fn it_works() {
-        let handle3 = std::thread::spawn(move || {
-            let start = String::from("a");
-            let end = String::from("zzz");
-            let mut previous: Vec<String> = vec![];
-            let mut current = start.clone();
-            while current <= end {
-                let z = best_hash(&current.clone());
-                println!("{current}\t-\t{z}");
-                for (index, _item) in previous.iter().enumerate() {
-                    assert_ne!(z, previous[index])
-                }
-                previous.push(z);
-                current = increment_string(&current);
+        let start = String::from("zzz");
+        let end = String::from("zzzz");
+        let mut previous: Vec<String> = vec![];
+        let mut current = start.clone();
+        while current <= end {
+            let z = best_hash(&current.clone());
+            println!("{current}\t-\t{z}");
+            for (index, _item) in previous.iter().enumerate() {
+                assert_ne!(z, previous[index])
             }
-        });
-
-        handle3.join().unwrap();
+            previous.push(z);
+            current = increment_string(&current);
+        }
     }
+
     #[test]
     fn qbc() {
         let handle3 = std::thread::spawn(move || {
@@ -648,6 +708,10 @@ mod tests4 {
             println!("{x}");
             let y = best_hash("The quick brown fox jumps over the lazy dog.");
             println!("{y}");
+            let z = best_hash("The quick brown fox jumps over the lazy bog");
+            println!("{z}");
+            assert_ne!(x, y);
+            assert_ne!(x, z);
         });
 
         handle3.join().unwrap();
