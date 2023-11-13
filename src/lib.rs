@@ -10,7 +10,7 @@ pub fn best_hash(message: &str) -> String {
     padded_message.push(0b10000000);
 
     while padded_message.len() % 64 != (64 - 8) % 64 {
-        padded_message.push(padded_message[padded_message.len() % original_length] % 7);
+        padded_message.push(padded_message[padded_message.len().wrapping_rem(original_length) ]);
     }
 
     let length_bits = (original_length as u64 * 8).to_be_bytes();
@@ -28,13 +28,24 @@ pub fn best_hash(message: &str) -> String {
         let mut curr_word: Vec<u8> = chunk.to_vec();
         let mut count = 0;
         while curr_word.len() % 64 != 0 {
-            curr_word.push(curr_word[count]);
+            curr_word.push(curr_word[count].wrapping_mul(107));
             count += 1;
         }
         word_chunks.push(curr_word);
     }
     let mut result: Vec<u8> = vec![];
-    for (index, item) in word_chunks.iter().enumerate() {
+    let mut swapped: Vec<Vec<u8>> = vec![];
+    for item in &word_chunks {
+        let mut sum: u32 = 0;
+        for el in &*item {
+            sum += *el as u32;
+        }
+        if sum % 2 == 0 {
+            item.to_vec().reverse();
+            swapped.push(item.to_vec());
+        }
+    }
+    for (index, item) in swapped.iter().enumerate() {
         let v3: Vec<u8> = item
             .iter()
             .zip(word_chunks.iter().next().iter())
@@ -45,6 +56,12 @@ pub fn best_hash(message: &str) -> String {
                 .into_iter()
                 .map(|x: u8| {
                     let mut xwares: u64 = x as u64;
+                    if xwares % 2 == 0 {
+                        xwares = xwares.reverse_bits();
+                    }
+                    xwares ^= xwares.wrapping_shr(64_u32.wrapping_sub(4_294_967_295u32)); 
+                    xwares = (59123_u64.wrapping_mul(xwares)).wrapping_shr(64_u32.wrapping_sub(4_294_967_295u32));
+
                         for mut i in hash_values {
                             xwares = (xwares | (xwares << 8)) & 0x00FF00FF;
                             xwares = (xwares | (xwares << 4)) & 0x0F0F0F0F;
@@ -56,13 +73,11 @@ pub fn best_hash(message: &str) -> String {
                             i = (i | (i << 2)) & 0x33333333;
                             i = (i | (i << 1)) & 0x55555555;
                             
-                            if xwares % 2 == 0 {
-                                xwares = xwares.reverse_bits();
-                            }
                             let z = !(xwares | ((i as u64) << 1)) ^ x as u64;
                             xwares = z;
                             
                         }
+                     
                     return xwares as u8;
                 })
                 .collect(),
@@ -74,8 +89,19 @@ pub fn best_hash(message: &str) -> String {
         .iter()
         .map(|x| format!("{:x}", *x))
         .collect::<Vec<String>>();
-    let string_result: String = char_result.join("");
+    let mut string_result: String = char_result.join("");
+
+    while string_result.len() % 32 != 0 {
+        string_result = format!("0{}", string_result);
+    }
     string_result
+}
+
+pub fn hash_worker(inp: &str) -> String {
+    let res1 = best_hash(inp);
+
+    let res2 = best_hash(&res1);
+    return res2
 }
 
 //AI
@@ -672,7 +698,7 @@ mod tests4 {
     #[test]
     fn performance_test() {
         let num_inputs = 100000;
-        let input = "test_input";
+        let input = "test";
 
         let start_time = std::time::Instant::now();
 
@@ -686,7 +712,7 @@ mod tests4 {
 
     #[test]
     fn it_works() {
-        let start = String::from("zzz");
+        let start = String::from("a");
         let end = String::from("zzzz");
         let mut previous: Vec<String> = vec![];
         let mut current = start.clone();
@@ -715,5 +741,11 @@ mod tests4 {
         });
 
         handle3.join().unwrap();
+    }
+
+    #[test]
+    fn empty() {
+        let res = best_hash("");
+        println!("{res}");
     }
 }
