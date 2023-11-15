@@ -56,7 +56,21 @@ pub fn hash(message: &str) -> String {
             accumulator = format!("{accumulator}{:x}", val);
         }
     }
-    let truncated = accumulator[128..192].to_string().chars().collect::<Vec<char>>().to_owned();
+
+    let sum: u32 = accumulator.chars().collect::<Vec<char>>().iter().map(|x| *x as u32).sum::<u32>();
+
+    let mut truncated: Vec<char>;
+    if sum % 3 == 0 {
+        truncated = accumulator[0..128 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
+    } else if sum % 2 == 0{
+        truncated = accumulator[128..256 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
+    } else {
+        truncated = accumulator[256..384 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
+    }
+
+    truncated.rotate_right(sum as usize & 127);
+    //truncated.drain(0..128 as usize);
+    truncated.truncate(64);
     truncated.chunks(8)
         .map(|c| c.iter().collect::<String>())
         .collect::<Vec<String>>()

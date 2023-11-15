@@ -355,7 +355,6 @@ mod tests5 {
 
     #[test]
     fn qbc() {
-        let handle3 = std::thread::spawn(move || {
             let x = hash1::hash("The quick brown fox jumps over the lazy dog");
             println!("{x}\n");
             let y = hash1::hash("The quick brown fox jumps over the lazy dog.");
@@ -364,9 +363,6 @@ mod tests5 {
             println!("{z}\n");
             assert_ne!(x, y);
             assert_ne!(x, z);
-        });
-
-        handle3.join().unwrap();
     }
 
     #[test]
