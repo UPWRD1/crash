@@ -1,4 +1,4 @@
-mod hash1;
+mod crash;
 
 pub fn increment_string(s: &str) -> String {
     let mut chars: Vec<char> = s.chars().collect();
@@ -27,10 +27,10 @@ mod tests {
     use super::*;
     #[test]
     fn collision_test() {
-        let inputs = vec!["input1", "input2", "input3"];
+        let inputs = vec!["input1", "jnput", "knput"];
         let mut hash_set = std::collections::HashSet::new();
         for input in inputs {
-            let hash_value = hash1::hash(input);
+            let hash_value = crash::hash(input);
             assert!(
                 !hash_set.contains(&hash_value),
                 "Collision detected for input: {}",
@@ -43,8 +43,8 @@ mod tests {
     #[test]
     fn security_test() {
         let input = "test_input";
-        let hash_value1 = hash1::hash(input);
-        let hash_value2 = hash1::hash(input);
+        let hash_value1 = crash::hash(input);
+        let hash_value2 = crash::hash(input);
         println!("{hash_value1}\n\n{hash_value2}");
         assert_eq!(
             hash_value1, hash_value2,
@@ -59,7 +59,7 @@ mod tests {
 
         for i in 0_i32..num_inputs {
             let input = format!("input{}", i);
-            let hash_value = hash1::hash(&input);
+            let hash_value = crash::hash(&input);
 
             *hash_count.entry(hash_value).or_insert(0) += 1;
         }
@@ -75,13 +75,13 @@ mod tests {
 
     #[test]
     fn performance_test() {
-        let num_inputs = 1000;
+        let num_inputs = 10000;
         let input = "test";
 
         let start_time = std::time::Instant::now();
 
         for _ in 0..num_inputs {
-            hash1::hash(input);
+            crash::hash(input);
         }
 
         let elapsed_time = start_time.elapsed();
@@ -89,13 +89,13 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn bulk() {
         let start = String::from("aa");
         let end = String::from("z");
         let mut previous: Vec<String> = vec![];
         let mut current = start.clone();
         while current <= end {
-            let z = hash1::hash(&current.clone());
+            let z = crash::hash(&current.clone());
             println!("{current}\t-\t{z}");
             for (index, _item) in previous.iter().enumerate() {
                 assert_ne!(z, previous[index])
@@ -109,12 +109,12 @@ mod tests {
     }
 
     #[test]
-    fn qbc() {
-            let x = hash1::hash("The quick brown fox jumps over the lazy dog");
+    fn qbf() {
+            let x = crash::hash("The quick brown fox jumps over the lazy dog");
             println!("{x}\n");
-            let y = hash1::hash("The quick brown fox jumps over the lazy dog.");
+            let y = crash::hash("The quick brown fox jumps over the lazy dog.");
             println!("{y}\n");
-            let z = hash1::hash("The quick brown fox jumps over the lazy bog");
+            let z = crash::hash("The quick brown fox jumps over the lazy bog");
             println!("{z}\n");
             assert_ne!(x, y);
             assert_ne!(x, z);
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn empty() {
-        let res = hash1::hash("");
+        let res = crash::hash("");
         println!("{res}");
     }
 }

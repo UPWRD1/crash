@@ -50,17 +50,12 @@ pub fn hash(message: &str) -> String {
         stage2_word_chunks.push(stage2_word);
     }
 
+    let flat_stage2_chunks:Vec<&u64> = stage2_word_chunks.iter().flatten().collect();
     // Truncate and formatting
     let mut accumulator: String = "".to_string();
-    for (count, _i) in stage2_word_chunks
-        .iter()
-        .take(stage2_word_chunks.len() - 1)
-        .enumerate()
+    for item in flat_stage2_chunks
     {
-        let item = &stage2_word_chunks[count];
-        for val in item {
-            accumulator = format!("{accumulator}{:x}", val);
-        }
+        accumulator = format!("{accumulator}{:x}", item);
     }
 
     let sum: u32 = accumulator

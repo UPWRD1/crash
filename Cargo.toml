@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 num-bigint = { git = "https://github.com/rust-num/num-bigint.git", version = "0.4" }
+
+[profile.release]
+opt-level = 3
+debug = 0
+codegen-units = 1
+lto = "thin"
+incremental = false
