@@ -28,9 +28,10 @@ pub fn hash(message: &str) -> String {
             let mut next_byte: u64 = *stage1_word.iter().next().unwrap() as u64;
             // Interlacing
             curr_byte *= (curr_byte | (curr_byte.rotate_right(8))) & 0x00FF00FF;
-            curr_byte += (curr_byte | (curr_byte.rotate_left(next_byte as u32).reverse_bits())) & 0x0F0F0F0F;
-            curr_byte ^= (sum as u64| (curr_byte.wrapping_shl(2 * curr_byte as u32))) & 0x33333333;
-            curr_byte *= curr_byte.wrapping_add((sum as u64| (curr_byte >> 1)) & 0x55555555);
+            curr_byte +=
+                (curr_byte | (curr_byte.rotate_left(next_byte as u32).reverse_bits())) & 0x0F0F0F0F;
+            curr_byte ^= (sum as u64 | (curr_byte.wrapping_shl(2 * curr_byte as u32))) & 0x33333333;
+            curr_byte *= curr_byte.wrapping_add((sum as u64 | (curr_byte >> 1)) & 0x55555555);
 
             next_byte ^= (next_byte | (next_byte.rotate_left(8))) & 0x00FF00FF;
             next_byte ^= (next_byte | (next_byte.wrapping_shr(4 * next_byte as u32))) & 0x0F0F0F0F;
@@ -42,36 +43,56 @@ pub fn hash(message: &str) -> String {
                     ^ (sum as u64 & count as u64).reverse_bits();
 
             interlaced ^= interlaced.wrapping_shr(word_size.wrapping_sub(256) as u32);
-            interlaced = (85331_u64.wrapping_mul(interlaced)).wrapping_shr(word_size.wrapping_sub(16) as u32);
+            interlaced = (85331_u64.wrapping_mul(interlaced))
+                .wrapping_shr(word_size.wrapping_sub(16) as u32);
             stage2_word.push(interlaced);
         }
         stage2_word_chunks.push(stage2_word);
     }
 
-    // Truncate and formatting 
+    // Truncate and formatting
     let mut accumulator: String = "".to_string();
-    for (count, _i) in stage2_word_chunks.iter().take(stage2_word_chunks.len() - 1).enumerate() {
+    for (count, _i) in stage2_word_chunks
+        .iter()
+        .take(stage2_word_chunks.len() - 1)
+        .enumerate()
+    {
         let item = &stage2_word_chunks[count];
         for val in item {
             accumulator = format!("{accumulator}{:x}", val);
         }
     }
 
-    let sum: u32 = accumulator.chars().collect::<Vec<char>>().iter().map(|x| *x as u32).sum::<u32>();
-
+    let sum: u32 = accumulator
+        .chars()
+        .collect::<Vec<char>>()
+        .iter()
+        .map(|x| *x as u32)
+        .sum::<u32>();
     let mut truncated: Vec<char>;
     if sum % 3 == 0 {
-        truncated = accumulator[0..128 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
-    } else if sum % 2 == 0{
-        truncated = accumulator[128..256 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
+        truncated = accumulator[0..128 as usize]
+            .to_string()
+            .chars()
+            .collect::<Vec<char>>()
+            .to_owned();
+    } else if sum & 1 == 0 {
+        truncated = accumulator[128..256 as usize]
+            .to_string()
+            .chars()
+            .collect::<Vec<char>>()
+            .to_owned();
     } else {
-        truncated = accumulator[256..384 as usize].to_string().chars().collect::<Vec<char>>().to_owned();
+        truncated = accumulator[256..384 as usize]
+            .to_string()
+            .chars()
+            .collect::<Vec<char>>()
+            .to_owned();
     }
-
     truncated.rotate_right(sum as usize & 127);
-    //truncated.drain(0..128 as usize);
     truncated.truncate(64);
-    truncated.chunks(8)
+    truncated
+        .chunks(8)
         .map(|c| c.iter().collect::<String>())
         .collect::<Vec<String>>()
         .join("-")
