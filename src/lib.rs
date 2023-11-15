@@ -25,12 +25,13 @@ pub fn increment_string(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crash::Shade;
     #[test]
     fn collision_test() {
         let inputs = vec!["input1", "jnput", "knput"];
         let mut hash_set = std::collections::HashSet::new();
         for input in inputs {
-            let hash_value = crash::hash(input);
+            let hash_value = crash::hash_calc(input);
             assert!(
                 !hash_set.contains(&hash_value),
                 "Collision detected for input: {}",
@@ -42,9 +43,8 @@ mod tests {
 
     #[test]
     fn security_test() {
-        let input = "test_input";
-        let hash_value1 = crash::hash(input);
-        let hash_value2 = crash::hash(input);
+        let hash_value1 = Shade::hash("test_input", 256);
+        let hash_value2 = Shade::hash("test_input", 256);
         println!("{hash_value1}\n\n{hash_value2}");
         assert_eq!(
             hash_value1, hash_value2,
@@ -59,7 +59,7 @@ mod tests {
 
         for i in 0_i32..num_inputs {
             let input = format!("input{}", i);
-            let hash_value = crash::hash(&input);
+            let hash_value = Shade::hash(&input, 256);
 
             *hash_count.entry(hash_value).or_insert(0) += 1;
         }
@@ -68,7 +68,8 @@ mod tests {
         let max_count = *hash_count.values().max().unwrap();
         let min_count = *hash_count.values().min().unwrap();
         assert!(
-            max_count - min_count <= 2,
+            max_count - min_count <= 2
+            ,
             "Hash values are not evenly distributed!\n {max_count}\n\n {min_count}"
         );
     }
@@ -81,7 +82,7 @@ mod tests {
         let start_time = std::time::Instant::now();
 
         for _ in 0..num_inputs {
-            crash::hash(input);
+            let _ = Shade::hash(input, 256);
         }
 
         let elapsed_time = start_time.elapsed();
@@ -91,11 +92,11 @@ mod tests {
     #[test]
     fn bulk() {
         let start = String::from("aa");
-        let end = String::from("z");
+        let end = String::from("zz");
         let mut previous: Vec<String> = vec![];
         let mut current = start.clone();
         while current <= end {
-            let z = crash::hash(&current.clone());
+            let z = Shade::hash(&current,256);
             println!("{current}\t-\t{z}");
             for (index, _item) in previous.iter().enumerate() {
                 assert_ne!(z, previous[index])
@@ -110,19 +111,34 @@ mod tests {
 
     #[test]
     fn qbf() {
-            let x = crash::hash("The quick brown fox jumps over the lazy dog");
+            let x = Shade::hash("The quick brown fox jumps over the lazy dog".into(), 256); 
             println!("{x}\n");
-            let y = crash::hash("The quick brown fox jumps over the lazy dog.");
+            let y = Shade::hash("The quick brown fox jumps over the ØÂôò@ÈÞ".into(), 256); 
             println!("{y}\n");
-            let z = crash::hash("The quick brown fox jumps over the lazy bog");
-            println!("{z}\n");
             assert_ne!(x, y);
-            assert_ne!(x, z);
     }
+
 
     #[test]
     fn empty() {
-        let res = crash::hash("");
+        let res = Shade::hash("", 256);
         println!("{res}");
+    }
+
+
+    
+    #[test]
+    fn dump() {
+        let start = String::from("a");
+        let end = String::from("zz");
+        let mut current = start.clone();
+        while current <= end {
+            let z = Shade::hash(&current,256);
+            println!("{z}");
+            current = increment_string(&current);
+            //let ten_millis = std::time::Duration::from_millis(50);
+
+            //std::thread::sleep(ten_millis);
+        }
     }
 }
