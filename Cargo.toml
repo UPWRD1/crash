@@ -1,5 +1,5 @@
 [package]
-name = "shade"
+name = "k0"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,5 +11,5 @@ edition = "2021"
 opt-level = 3
 debug = 0
 codegen-units = 1
-lto = "thin"
+# lto = "thin"
 incremental = false
