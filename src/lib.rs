@@ -118,15 +118,12 @@ mod tests {
             assert_ne!(x, y);
     }
 
-
     #[test]
     fn empty() {
         let res = Shade::hash("", 256);
         println!("{res}");
     }
 
-
-    
     #[test]
     fn dump() {
         let start = String::from("a");
