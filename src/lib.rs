@@ -31,7 +31,7 @@ mod tests {
         let inputs = vec!["input1", "jnput", "knput"];
         let mut hash_set = std::collections::HashSet::new();
         for input in inputs {
-            let hash_value = crash::hash_calc(input);
+            let hash_value = Shade::hash(input, 256);
             assert!(
                 !hash_set.contains(&hash_value),
                 "Collision detected for input: {}",
