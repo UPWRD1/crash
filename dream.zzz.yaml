@@ -1,0 +1,11 @@
+PROJECT:
+  NAME: knockout
+  PACKAGE: knockout
+  DESCRIPTION: ''
+  VERSION: 0.0.0
+  IS_LOADED: false
+ON:
+  RUN:
+  - echo hello world
+DEPENDANCIES:
+  TOOLS:
