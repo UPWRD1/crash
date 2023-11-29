@@ -1,6 +1,6 @@
 PROJECT:
   NAME: knockout
-  PACKAGE: knockout
+  PACKAGE: avalanche.py
   DESCRIPTION: ''
   VERSION: 0.0.0
   IS_LOADED: false
